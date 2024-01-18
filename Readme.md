@@ -1,3 +1,4 @@
+
 # Alpha-X
 
 ## Description
@@ -17,7 +18,30 @@ Alpha-X is a command-line tool designed to automate various tasks. It includes f
 
 Clone the repository to your local machine:
 
+
 ```bash
 git clone https://github.com/Alpha-Clan/alpha-x.git
+```
+```
 cd alpha-x
+```
+```
 python alpha-x.py
+```
+
+## Usage
+
+Navigate to the project directory and run the tool with the appropriate commands. (Please provide more specific instructions here.)
+
+## Contributing
+
+Contributions are welcome! Please read the contributing guidelines before making any changes.
+
+## License
+
+This project is licensed under the terms of the XYZ license. See `LICENSE` for more information.
+
+## Contact
+
+Alpha-Clan - jayasuriya.it21@bitsathy.ac.in
+
