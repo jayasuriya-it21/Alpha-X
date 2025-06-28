@@ -1,0 +1,1085 @@
+import sys
+import subprocess
+import webbrowser
+from datetime import datetime
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
+    QLabel, QTabWidget, QFileDialog, QInputDialog, QDialog, QTextEdit, QMessageBox,
+    QScrollArea, QFrame, QSizePolicy, QSpacerItem, QGridLayout, QStackedWidget,
+    QSplitter, QListWidget, QListWidgetItem, QLineEdit, QGraphicsDropShadowEffect
+)
+from PySide6.QtCore import Qt, QThread, Signal, QPropertyAnimation, QEasingCurve, QRect, QTimer, QSequentialAnimationGroup, QParallelAnimationGroup
+from PySide6.QtGui import QFont, QIcon, QPalette, QColor, QPixmap, QPainter, QLinearGradient
+
+# Enhanced Modern Button with animations (from your code)
+class ModernButton(QPushButton):
+    def __init__(self, text, icon_text="", parent=None):
+        super().__init__(text, parent)
+        self.icon_text = icon_text
+        self.setMinimumHeight(56)
+        self.setCursor(Qt.PointingHandCursor)
+        self.setFont(QFont("SF Pro Display", 11, QFont.Weight.Medium))
+        
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(20)
+        shadow.setColor(QColor(0, 0, 0, 60))
+        shadow.setOffset(0, 4)
+        self.setGraphicsEffect(shadow)
+        
+        # Enhanced button styling with gradients
+        self.setStyleSheet("""
+            ModernButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #2a2d3a, stop:1 #1e1e2e);
+                border: 1px solid #3d4152;
+                border-radius: 14px;
+                color: #ffffff;
+                padding: 16px 24px;
+                text-align: left;
+                font-weight: 500;
+                font-size: 11px;
+            }
+            ModernButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #00d4aa, stop:1 #00b894);
+                border-color: #00f5cc;
+                transform: translateY(-2px);
+                color: #1e1e2e;
+                font-weight: 600;
+            }
+            ModernButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #00a085, stop:1 #008f75);
+                border-color: #00d4aa;
+                transform: translateY(0px);
+            }
+        """)
+
+# Enhanced Tool Card with glassmorphism effect (from your code)
+class ToolCard(QFrame):
+    def __init__(self, title, description, icon="🔧", parent=None):
+        super().__init__(parent)
+        self.setFrameStyle(QFrame.NoFrame)
+        
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(25)
+        shadow.setColor(QColor(0, 0, 0, 40))
+        shadow.setOffset(0, 8)
+        self.setGraphicsEffect(shadow)
+        
+        # Glassmorphism style
+        self.setStyleSheet("""
+            ToolCard {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(45, 49, 66, 0.8), 
+                    stop:1 rgba(37, 37, 55, 0.6));
+                border: 1px solid rgba(79, 91, 102, 0.3);
+                border-radius: 20px;
+                margin: 12px;
+            }
+            ToolCard:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(0, 212, 170, 0.1), 
+                    stop:1 rgba(0, 184, 148, 0.05));
+                border-color: rgba(0, 212, 170, 0.5);
+                transform: translateY(-4px);
+            }
+        """)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(12)
+        
+        # Icon and title row
+        header_layout = QHBoxLayout()
+        
+        icon_label = QLabel(icon)
+        icon_label.setFont(QFont("SF Pro Display", 20))
+        icon_label.setStyleSheet("color: #00d4aa; margin-right: 8px;")
+        icon_label.setFixedSize(32, 32)
+        icon_label.setAlignment(Qt.AlignCenter)
+        
+        title_label = QLabel(title)
+        title_label.setFont(QFont("SF Pro Display", 15, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: #ffffff; margin: 0;")
+        
+        header_layout.addWidget(icon_label)
+        header_layout.addWidget(title_label)
+        header_layout.addStretch()
+        
+        desc_label = QLabel(description)
+        desc_label.setFont(QFont("SF Pro Text", 10))
+        desc_label.setStyleSheet("color: #a0a8b0; line-height: 1.5; margin-top: 4px;")
+        desc_label.setWordWrap(True)
+        
+        layout.addLayout(header_layout)
+        layout.addWidget(desc_label)
+
+# Enhanced Sidebar with better animations (from your code)
+class SidebarItem(QFrame):
+    clicked = Signal(str)
+    
+    def __init__(self, name, icon_text, parent=None):
+        super().__init__(parent)
+        self.name = name
+        self.is_active = False
+        self.setFixedHeight(64)
+        self.setCursor(Qt.PointingHandCursor)
+        
+        # Animation setup
+        self.animation = QPropertyAnimation(self, b"geometry")
+        self.animation.setDuration(200)
+        self.animation.setEasingCurve(QEasingCurve.OutCubic)
+        
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(24, 0, 24, 0)
+        layout.setSpacing(16)
+        
+        # Enhanced icon
+        icon_label = QLabel(icon_text)
+        icon_label.setFont(QFont("SF Pro Display", 18))
+        icon_label.setStyleSheet("color: #00d4aa;")
+        icon_label.setFixedWidth(32)
+        icon_label.setAlignment(Qt.AlignCenter)
+        
+        # Enhanced text
+        text_label = QLabel(name)
+        text_label.setFont(QFont("SF Pro Display", 12, QFont.Weight.Medium))
+        text_label.setStyleSheet("color: #ffffff;")
+        
+        # Active indicator
+        self.indicator = QFrame()
+        self.indicator.setFixedSize(4, 32)
+        self.indicator.setStyleSheet("""
+            background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                stop:0 #00d4aa, stop:1 #00b894);
+            border-radius: 2px;
+        """)
+        self.indicator.hide()
+        
+        layout.addWidget(self.indicator)
+        layout.addWidget(icon_label)
+        layout.addWidget(text_label)
+        layout.addStretch()
+        
+        self.update_style()
+    
+    def update_style(self):
+        if self.is_active:
+            self.indicator.show()
+            self.setStyleSheet("""
+                SidebarItem {
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                        stop:0 rgba(0, 212, 170, 0.15), 
+                        stop:1 rgba(0, 212, 170, 0.05));
+                    border-left: 3px solid #00d4aa;
+                    border-radius: 12px;
+                    margin: 4px 16px;
+                }
+            """)
+        else:
+            self.indicator.hide()
+            self.setStyleSheet("""
+                SidebarItem {
+                    background: transparent;
+                    border: none;
+                    border-radius: 12px;
+                    margin: 4px 16px;
+                }
+                SidebarItem:hover {
+                    background: rgba(61, 65, 82, 0.6);
+                }
+            """)
+    
+    def set_active(self, active):
+        self.is_active = active
+        self.update_style()
+    
+    def mousePressEvent(self, event):
+        self.clicked.emit(self.name)
+
+# Enhanced Command Thread
+class CommandThread(QThread):
+    result = Signal(str, str)
+
+    def __init__(self, command):
+        super().__init__()
+        self.command = command
+
+    def run(self):
+        proc = subprocess.run(self.command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        self.result.emit(proc.stdout, proc.stderr)
+
+# Enhanced Output Dialog (from your code)
+class OutputDialog(QDialog):
+    def __init__(self, title, output, error, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setMinimumSize(900, 700)
+        
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(30)
+        shadow.setColor(QColor(0, 0, 0, 80))
+        shadow.setOffset(0, 10)
+        self.setGraphicsEffect(shadow)
+        
+        self.setStyleSheet("""
+            QDialog {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #1e1e2e, stop:1 #252537);
+                border: 1px solid #3d4152;
+                border-radius: 20px;
+            }
+            QTextEdit {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #2d3142, stop:1 #252537);
+                border: 2px solid rgba(79, 91, 102, 0.5);
+                border-radius: 12px;
+                color: #ffffff;
+                font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+                font-size: 13px;
+                padding: 20px;
+                selection-background-color: #00d4aa;
+            }
+            QTextEdit:focus {
+                border-color: #00d4aa;
+            }
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #00d4aa, stop:1 #00b894);
+                border: none;
+                border-radius: 10px;
+                color: #1e1e2e;
+                font-weight: bold;
+                padding: 14px 32px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #00f5cc, stop:1 #00d4aa);
+                transform: translateY(-1px);
+            }
+            QPushButton:pressed {
+                transform: translateY(0px);
+            }
+        """)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(40, 40, 40, 40)
+        layout.setSpacing(24)
+        
+        # Enhanced title with icon
+        title_layout = QHBoxLayout()
+        title_icon = QLabel("💻")
+        title_icon.setFont(QFont("SF Pro Display", 20))
+        title_icon.setStyleSheet("margin-right: 8px;")
+        
+        title_label = QLabel(title)
+        title_label.setFont(QFont("SF Pro Display", 18, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: #00d4aa; margin: 0;")
+        
+        title_layout.addWidget(title_icon)
+        title_layout.addWidget(title_label)
+        title_layout.addStretch()
+        layout.addLayout(title_layout)
+        
+        # Output text
+        txt = QTextEdit(self)
+        txt.setReadOnly(True)
+        txt.setText(output if output else "")
+        if error:
+            txt.append("\n--- STDERR ---\n" + error)
+        layout.addWidget(txt)
+        
+        # Button layout
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        
+        btn = QPushButton("Close")
+        btn.clicked.connect(self.accept)
+        btn_layout.addWidget(btn)
+        
+        layout.addLayout(btn_layout)
+
+# Enhanced Input Dialog (from your code)
+class ModernInputDialog(QDialog):
+    def __init__(self, title, label_text, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(title)
+        self.setMinimumSize(480, 260)
+        
+        # Add shadow effect
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(25)
+        shadow.setColor(QColor(0, 0, 0, 70))
+        shadow.setOffset(0, 8)
+        self.setGraphicsEffect(shadow)
+        
+        self.setStyleSheet("""
+            QDialog {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #1e1e2e, stop:1 #252537);
+                border: 1px solid #3d4152;
+                border-radius: 18px;
+            }
+            QLineEdit {
+                background: rgba(45, 49, 66, 0.8);
+                border: 2px solid rgba(79, 91, 102, 0.5);
+                border-radius: 10px;
+                color: #ffffff;
+                padding: 14px 16px;
+                font-size: 13px;
+                font-family: 'SF Pro Text';
+            }
+            QLineEdit:focus {
+                border-color: #00d4aa;
+                background: rgba(45, 49, 66, 1.0);
+            }
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #00d4aa, stop:1 #00b894);
+                border: none;
+                border-radius: 10px;
+                color: #1e1e2e;
+                font-weight: bold;
+                padding: 14px 28px;
+                margin: 6px;
+                font-size: 11px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #00f5cc, stop:1 #00d4aa);
+            }
+            QPushButton:pressed {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #00a085, stop:1 #008f75);
+            }
+            QPushButton#cancel {
+                background: rgba(79, 91, 102, 0.8);
+                color: #ffffff;
+            }
+            QPushButton#cancel:hover {
+                background: rgba(79, 91, 102, 1.0);
+            }
+        """)
+        
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(32, 32, 32, 32)
+        layout.setSpacing(20)
+        
+        # Title with icon
+        title_layout = QHBoxLayout()
+        title_icon = QLabel("⚡")
+        title_icon.setFont(QFont("SF Pro Display", 16))
+        title_icon.setStyleSheet("margin-right: 8px;")
+        
+        title_label = QLabel(title)
+        title_label.setFont(QFont("SF Pro Display", 16, QFont.Weight.Bold))
+        title_label.setStyleSheet("color: #00d4aa;")
+        
+        title_layout.addWidget(title_icon)
+        title_layout.addWidget(title_label)
+        title_layout.addStretch()
+        layout.addLayout(title_layout)
+        
+        # Label
+        label = QLabel(label_text)
+        label.setFont(QFont("SF Pro Text", 12))
+        label.setStyleSheet("color: #a0a8b0; margin-bottom: 8px;")
+        layout.addWidget(label)
+        
+        # Input
+        self.input_field = QLineEdit()
+        layout.addWidget(self.input_field)
+        
+        # Buttons
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        
+        self.cancel_btn = QPushButton("Cancel")
+        self.cancel_btn.setObjectName("cancel")
+        self.ok_btn = QPushButton("OK")
+        
+        self.ok_btn.clicked.connect(self.accept)
+        self.cancel_btn.clicked.connect(self.reject)
+        
+        btn_layout.addWidget(self.cancel_btn)
+        btn_layout.addWidget(self.ok_btn)
+        layout.addLayout(btn_layout)
+        
+        self.input_field.setFocus()
+    
+    def get_text(self):
+        return self.input_field.text()
+    
+    @staticmethod
+    def getText(parent, title, label):
+        dialog = ModernInputDialog(title, label, parent)
+        if dialog.exec() == QDialog.Accepted:
+            return dialog.get_text(), True
+        return "", False
+
+# Enhanced Main Application (completing your code)
+class AlphaXUltimate(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("ALPHA-X Ultimate • Advanced Kali Toolkit")
+        self.setMinimumSize(1500, 1000)
+        
+        # Add window shadow
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(30)
+        shadow.setColor(QColor(0, 0, 0, 100))
+        shadow.setOffset(0, 10)
+        self.setGraphicsEffect(shadow)
+        
+        self.setStyleSheet(self.get_enhanced_theme())
+        
+        # Main widget and layout
+        main_widget = QWidget()
+        self.setCentralWidget(main_widget)
+        main_layout = QHBoxLayout(main_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        
+        # Create sidebar and content area
+        self.create_enhanced_sidebar(main_layout)
+        self.create_enhanced_content_area(main_layout)
+        
+        # Initialize with System tab
+        self.current_tab = "System"
+        self.sidebar_items["System"].set_active(True)
+        self.show_tab_content("System")
+        
+        # Add smooth startup animation
+        self.startup_animation()
+    
+    def startup_animation(self):
+        """Add a smooth startup animation"""
+        self.setWindowOpacity(0.0)
+        self.animation = QPropertyAnimation(self, b"windowOpacity")
+        self.animation.setDuration(800)
+        self.animation.setStartValue(0.0)
+        self.animation.setEndValue(1.0)
+        self.animation.setEasingCurve(QEasingCurve.OutCubic)
+        self.animation.start()
+    
+    def get_enhanced_theme(self):
+        return """
+            QMainWindow {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #1e1e2e, stop:1 #252537);
+                color: #ffffff;
+                border-radius: 15px;
+            }
+            QScrollArea {
+                border: none;
+                background: transparent;
+            }
+            QScrollBar:vertical {
+                background: rgba(45, 49, 66, 0.6);
+                width: 14px;
+                border-radius: 7px;
+                margin: 0;
+            }
+            QScrollBar::handle:vertical {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #00d4aa, stop:1 #00b894);
+                border-radius: 7px;
+                min-height: 30px;
+                margin: 2px;
+            }
+            QScrollBar::handle:vertical:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 #00f5cc, stop:1 #00d4aa);
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px;
+            }
+            QLabel {
+                color: #ffffff;
+            }
+        """
+    
+    def create_enhanced_sidebar(self, main_layout):
+        # Enhanced sidebar container
+        sidebar = QFrame()
+        sidebar.setFixedWidth(300)
+        sidebar.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 rgba(37, 37, 55, 0.95), 
+                    stop:1 rgba(30, 30, 46, 0.9));
+                border-right: 1px solid rgba(79, 91, 102, 0.3);
+                border-top-left-radius: 15px;
+                border-bottom-left-radius: 15px;
+            }
+        """)
+        
+        sidebar_layout = QVBoxLayout(sidebar)
+        sidebar_layout.setContentsMargins(0, 40, 0, 40)
+        sidebar_layout.setSpacing(8)
+        
+        # Enhanced logo/title section
+        logo_container = QFrame()
+        logo_container.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(0, 212, 170, 0.1), 
+                    stop:1 rgba(0, 184, 148, 0.05));
+                border: 1px solid rgba(0, 212, 170, 0.2);
+                border-radius: 16px;
+                margin: 0 20px 30px 20px;
+                padding: 20px;
+            }
+        """)
+        
+        logo_layout = QVBoxLayout(logo_container)
+        logo_layout.setSpacing(8)
+        
+        title_label = QLabel("ALPHA-X")
+        title_label.setFont(QFont("SF Pro Display", 28, QFont.Weight.ExtraBold))
+        title_label.setStyleSheet("color: #00d4aa; margin: 0;")
+        title_label.setAlignment(Qt.AlignCenter)
+        
+        subtitle_label = QLabel("Ultimate Security Toolkit")
+        subtitle_label.setFont(QFont("SF Pro Text", 11, QFont.Weight.Medium))
+        subtitle_label.setStyleSheet("color: #a0a8b0; margin: 0;")
+        subtitle_label.setAlignment(Qt.AlignCenter)
+        
+        # User info with current date/time
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        user_info = QLabel(f"👤 jayasuriya-it21\n📅 {current_time}")
+        user_info.setFont(QFont("SF Pro Text", 9))
+        user_info.setStyleSheet("color: #6c7293; margin-top: 8px;")
+        user_info.setAlignment(Qt.AlignCenter)
+        
+        logo_layout.addWidget(title_label)
+        logo_layout.addWidget(subtitle_label)
+        logo_layout.addWidget(user_info)
+        sidebar_layout.addWidget(logo_container)
+        
+        # Enhanced navigation items with better icons
+        nav_items = [
+            ("System", "⚙️"),
+            ("Network", "🌐"),
+            ("Web App", "🔍"),
+            ("Cracking", "🔓"),
+            ("Forensics", "🔬"),
+            ("Reverse Engr.", "🔄"),
+            ("Social Engr.", "👥"),
+            ("Misc Tools", "🔧")
+        ]
+        
+        self.sidebar_items = {}
+        for name, icon in nav_items:
+            item = SidebarItem(name, icon)
+            item.clicked.connect(self.on_sidebar_clicked)
+            sidebar_layout.addWidget(item)
+            self.sidebar_items[name] = item
+        
+        sidebar_layout.addStretch()
+        
+        # Footer info
+        footer_label = QLabel("v2.0 • Kali Linux")
+        footer_label.setFont(QFont("SF Pro Text", 9))
+        footer_label.setStyleSheet("color: #6c7293; margin: 20px; text-align: center;")
+        footer_label.setAlignment(Qt.AlignCenter)
+        sidebar_layout.addWidget(footer_label)
+        
+        main_layout.addWidget(sidebar)
+    
+    def create_enhanced_content_area(self, main_layout):
+        # Enhanced content area
+        content_container = QFrame()
+        content_container.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 rgba(30, 30, 46, 0.95), 
+                    stop:1 rgba(37, 37, 55, 0.9));
+                border-top-right-radius: 15px;
+                border-bottom-right-radius: 15px;
+            }
+        """)
+        content_layout = QVBoxLayout(content_container)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+        
+        # Enhanced header
+        self.header = QFrame()
+        self.header.setFixedHeight(100)
+        self.header.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(37, 37, 55, 0.8), 
+                    stop:1 rgba(30, 30, 46, 0.6));
+                border-bottom: 1px solid rgba(79, 91, 102, 0.3);
+                border-top-right-radius: 15px;
+            }
+        """)
+        header_layout = QHBoxLayout(self.header)
+        header_layout.setContentsMargins(50, 0, 50, 0)
+        
+        header_text_container = QFrame()
+        header_text_layout = QVBoxLayout(header_text_container)
+        header_text_layout.setSpacing(4)
+        
+        self.header_title = QLabel("System Tools")
+        self.header_title.setFont(QFont("SF Pro Display", 24, QFont.Weight.Bold))
+        self.header_title.setStyleSheet("color: #ffffff; margin: 0;")
+        
+        self.header_subtitle = QLabel("Manage your Kali Linux system")
+        self.header_subtitle.setFont(QFont("SF Pro Text", 13))
+        self.header_subtitle.setStyleSheet("color: #a0a8b0; margin: 0;")
+        
+        header_text_layout.addWidget(self.header_title)
+        header_text_layout.addWidget(self.header_subtitle)
+        
+        header_layout.addWidget(header_text_container)
+        header_layout.addStretch()
+        
+        content_layout.addWidget(self.header)
+        
+        # Enhanced scrollable content area
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        
+        self.content_stack = QStackedWidget()
+        self.scroll_area.setWidget(self.content_stack)
+        
+        # Initialize all tab contents
+        self.init_all_tabs()
+        
+        content_layout.addWidget(self.scroll_area)
+        main_layout.addWidget(content_container)
+    
+    def on_sidebar_clicked(self, tab_name):
+        # Update active state with animation
+        for name, item in self.sidebar_items.items():
+            item.set_active(name == tab_name)
+        
+        self.current_tab = tab_name
+        self.show_tab_content(tab_name)
+    
+    def show_tab_content(self, tab_name):
+        # Update header with animation
+        headers = {
+            "System": ("System Tools", "Manage your Kali Linux system"),
+            "Network": ("Network & Wireless", "Network scanning and wireless tools"),
+            "Web App": ("Web Application Testing", "Test web applications for vulnerabilities"),
+            "Cracking": ("Password & Hash Cracking", "Crack passwords and hashes"),
+            "Forensics": ("Digital Forensics", "Forensics and memory analysis tools"),
+            "Reverse Engr.": ("Reverse Engineering", "Analyze and reverse engineer binaries"),
+            "Social Engr.": ("Social Engineering", "Social engineering frameworks"),
+            "Misc Tools": ("Miscellaneous Tools", "Utility tools and custom commands")
+        }
+        
+        title, subtitle = headers.get(tab_name, ("Tools", "Security tools"))
+        self.header_title.setText(title)
+        self.header_subtitle.setText(subtitle)
+        
+        # Show corresponding content
+        tab_indices = {
+            "System": 0, "Network": 1, "Web App": 2, "Cracking": 3,
+            "Forensics": 4, "Reverse Engr.": 5, "Social Engr.": 6, "Misc Tools": 7
+        }
+        
+        if tab_name in tab_indices:
+            self.content_stack.setCurrentIndex(tab_indices[tab_name])
+    
+    def init_all_tabs(self):
+        self.content_stack.addWidget(self.system_tab())
+        self.content_stack.addWidget(self.network_tab())
+        self.content_stack.addWidget(self.web_tab())
+        self.content_stack.addWidget(self.cracking_tab())
+        self.content_stack.addWidget(self.forensics_tab())
+        self.content_stack.addWidget(self.reverse_tab())
+        self.content_stack.addWidget(self.social_tab())
+        self.content_stack.addWidget(self.misc_tab())
+
+    # --- Enhanced Tab Creation Methods ---
+    
+    def create_tool_grid(self, tools):
+        """Create a modern grid layout for tools"""
+        container = QWidget()
+        container.setStyleSheet("background: transparent;")
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(50, 40, 50, 40)
+        layout.setSpacing(30)
+        
+        grid = QGridLayout()
+        grid.setSpacing(20)
+        
+        for i, (name, desc, icon, callback) in enumerate(tools):
+            # Create card
+            card = ToolCard(name, desc, icon)
+            
+            # Create button
+            btn = ModernButton(name, icon)
+            btn.clicked.connect(callback)
+            
+            # Container for card and button
+            card_container = QFrame()
+            card_layout = QVBoxLayout(card_container)
+            card_layout.setContentsMargins(0, 0, 0, 0)
+            card_layout.setSpacing(15)
+            card_layout.addWidget(card)
+            card_layout.addWidget(btn)
+            
+            row = i // 2
+            col = i % 2
+            grid.addWidget(card_container, row, col)
+        
+        layout.addLayout(grid)
+        layout.addStretch()
+        return container
+
+    def system_tab(self):
+        tools = [
+            ("Update & Upgrade System", "Keep your Kali Linux system up to date with latest packages", "🔄", 
+             lambda: self.run_command("sudo apt update && sudo apt full-upgrade -y", "System Upgrade")),
+            ("Edit /etc/hosts", "Modify system hosts file for custom DNS entries", "📝", 
+             lambda: subprocess.run("xdg-open /etc/hosts", shell=True)),
+            ("List Services", "View all systemd services and their current status", "⚙️", 
+             lambda: self.run_command("systemctl list-units --type=service --all", "Services")),
+            ("View System Logs", "Check recent system logs and error messages", "📋", 
+             lambda: self.run_command("journalctl -n 100", "System Logs")),
+            ("Quick SSH Connect", "Establish SSH connection to remote systems", "🔗", 
+             self.ssh_connect),
+            ("System Information", "Display detailed system hardware and OS info", "💻", 
+             lambda: self.run_command("uname -a && lscpu && free -h", "System Info"))
+        ]
+        return self.create_tool_grid(tools)
+
+    def network_tab(self):
+        tools = [
+            ("Nmap Quick Scan", "Perform network discovery and port scanning", "🎯", 
+             self.nmap_dialog),
+            ("Monitor Mode (airmon-ng)", "Start/stop WiFi monitor mode for packet capture", "📡", 
+             self.airmon_dialog),
+            ("WiFi Scan (airodump-ng)", "Scan for nearby wireless networks and clients", "📶", 
+             self.airodump_dialog),
+            ("Packet Sniffing (tcpdump)", "Capture and analyze network packets in real-time", "📦", 
+             self.tcpdump_dialog),
+            ("Launch Wireshark", "Open Wireshark for advanced packet analysis", "🦈", 
+             lambda: subprocess.Popen("wireshark", shell=True)),
+            ("Network Interfaces", "Display all network interfaces and their configurations", "🌐", 
+             lambda: self.run_command("ip addr", "Interfaces"))
+        ]
+        return self.create_tool_grid(tools)
+
+    def web_tab(self):
+        tools = [
+            ("Launch BurpSuite", "Professional web application security testing platform", "🔥", 
+             lambda: subprocess.Popen("burpsuite", shell=True)),
+            ("Launch OWASP ZAP", "Free web application security scanner", "⚡", 
+             lambda: subprocess.Popen("owasp-zap", shell=True)),
+            ("SQLMap Scan", "Automated SQL injection and database takeover tool", "💉", 
+             self.sqlmap_dialog),
+            ("Nikto Web Scanner", "Web server scanner for vulnerabilities and misconfigurations", "🔍", 
+             self.nikto_dialog),
+            ("WPScan (WordPress)", "WordPress security scanner for vulnerabilities", "📝", 
+             self.wpscan_dialog),
+            ("Directory Fuzzing", "Discover hidden directories and files on web servers", "🗂️", 
+             self.dirb_dialog)
+        ]
+        return self.create_tool_grid(tools)
+
+    def cracking_tab(self):
+        tools = [
+            ("John the Ripper", "Powerful password cracker supporting multiple hash types", "👑", 
+             self.john_dialog),
+            ("Hashcat", "Advanced password recovery tool with GPU acceleration", "⚡", 
+             self.hashcat_dialog),
+            ("Hydra Brute Force", "Network login cracker supporting many protocols", "🌊", 
+             self.hydra_dialog),
+            ("Hash Identifier", "Identify hash types for password cracking", "🔍", 
+             lambda: self.run_command("hash-identifier", "Hash Identifier")),
+            ("CrackMapExec", "Post-exploitation tool for Active Directory networks", "🎭", 
+             lambda: subprocess.Popen("crackmapexec", shell=True)),
+            ("Medusa", "Speedy, parallel, and modular login brute-forcer", "🔱", 
+             lambda: self.run_command("medusa", "Medusa"))
+        ]
+        return self.create_tool_grid(tools)
+
+    def forensics_tab(self):
+        tools = [
+            ("Volatility", "Advanced memory forensics framework", "🧠", 
+             self.volatility_dialog),
+            ("Launch Autopsy", "Digital forensics platform and graphical interface", "🔍", 
+             lambda: subprocess.Popen("autopsy", shell=True)),
+            ("Binwalk Analysis", "Tool for analyzing, reverse engineering firmware images", "📦", 
+             self.binwalk_dialog),
+            ("Foremost Recovery", "Console program to recover files based on headers", "🗂️", 
+             self.foremost_dialog),
+            ("Sleuth Kit", "Collection of command line tools for digital investigation", "🕵️", 
+             lambda: subprocess.Popen("tsk", shell=True)),
+            ("YARA Rules", "Pattern matching engine for malware identification", "🎯", 
+             lambda: self.run_command("yara", "YARA"))
+        ]
+        return self.create_tool_grid(tools)
+
+    def reverse_tab(self):
+        tools = [
+            ("Radare2", "Portable reversing framework with command-line interface", "🎯", 
+             self.r2_dialog),
+            ("Launch Ghidra", "NSA's software reverse engineering framework", "🐉", 
+             lambda: subprocess.Popen("ghidraRun", shell=True)),
+            ("Launch Cutter", "Free and open-source reverse engineering platform", "✂️", 
+             lambda: subprocess.Popen("cutter", shell=True)),
+            ("GDB Debugger", "GNU debugger for analyzing running programs", "🐛", 
+             lambda: self.run_command("gdb", "GDB")),
+            ("IDA Demo", "Interactive disassembler for binary analysis", "💎", 
+             lambda: subprocess.Popen("ida", shell=True)),
+            ("Strings Analysis", "Extract printable strings from binary files", "📝", 
+             self.strings_dialog)
+        ]
+        return self.create_tool_grid(tools)
+
+    def social_tab(self):
+        tools = [
+            ("Launch SEToolkit", "Social Engineer Toolkit for advanced attack vectors", "🛠️", 
+             lambda: subprocess.Popen("gnome-terminal -- setoolkit", shell=True)),
+            ("Gophish", "Open-source phishing toolkit for testing awareness", "🎣", 
+             lambda: subprocess.Popen("gophish", shell=True)),
+            ("King Phisher", "Tool for testing and promoting user awareness", "👑", 
+             lambda: subprocess.Popen("king-phisher", shell=True)),
+            ("Maltego", "Link analysis tool for gathering and connecting information", "🔗", 
+             lambda: subprocess.Popen("maltego", shell=True)),
+            ("TheHarvester", "Tool for gathering e-mail accounts and subdomain names", "🌾", 
+             lambda: self.run_command("theharvester", "TheHarvester")),
+            ("Recon-ng", "Full-featured reconnaissance framework", "🔍", 
+             lambda: self.run_command("recon-ng", "Recon-ng"))
+        ]
+        return self.create_tool_grid(tools)
+
+    def misc_tab(self):
+        tools = [
+            ("Clipboard Tools", "Encode/decode text in various formats (base64, hex, etc.)", "📋", 
+             self.clipboard_dialog),
+            ("Take Screenshot", "Capture screen for documentation and reporting", "📸", 
+             lambda: subprocess.Popen("gnome-screenshot", shell=True)),
+            ("Custom Command", "Execute custom shell commands and scripts", "⚡", 
+             self.custom_command_dialog),
+            ("Password Generator", "Generate secure random passwords", "🔐", 
+             lambda: self.run_command("pwgen 20 10", "Password Generator")),
+            ("System Monitor", "Monitor system resources and processes", "📊", 
+             lambda: subprocess.Popen("htop", shell=True)),
+            ("Terminal", "Open a new terminal window", "💻", 
+             lambda: subprocess.Popen("gnome-terminal", shell=True))
+        ]
+        return self.create_tool_grid(tools)
+
+    # --- Enhanced Dialog and Command Methods ---
+
+    def run_command(self, command, title):
+        self.thread = CommandThread(command)
+        self.thread.result.connect(lambda out, err: self.show_output(title, out, err))
+        self.thread.start()
+
+    def show_output(self, title, output, error):
+        dlg = OutputDialog(title, output, error, self)
+        dlg.exec()
+
+    def nmap_dialog(self):
+        target, ok = ModernInputDialog.getText(self, "🎯 Nmap Scan", "Target IP/host:")
+        if ok and target:
+            self.run_command(f"nmap -A {target}", f"Nmap Scan: {target}")
+
+    def airmon_dialog(self):
+        iface, ok = ModernInputDialog.getText(self, "📡 airmon-ng", "WiFi Interface (e.g. wlan0):")
+        if ok and iface:
+            mode, ok2 = QInputDialog.getItem(self, "Mode", "Action:", ["Start Monitor", "Stop Monitor"], 0, False)
+            if ok2:
+                cmd = f"sudo airmon-ng {'start' if mode=='Start Monitor' else 'stop'} {iface}"
+                self.run_command(cmd, f"airmon-ng: {mode} {iface}")
+
+    def airodump_dialog(self):
+        iface, ok = ModernInputDialog.getText(self, "📶 airodump-ng", "WiFi Monitor Interface (e.g. wlan0mon):")
+        if ok and iface:
+            self.run_command(f"sudo airodump-ng {iface}", f"Airodump-ng: {iface}")
+
+    def tcpdump_dialog(self):
+        iface, ok = ModernInputDialog.getText(self, "📦 tcpdump", "Interface (e.g. eth0):")
+        if ok and iface:
+            self.run_command(f"sudo tcpdump -i {iface} -c 100", f"tcpdump: {iface}")
+
+    def sqlmap_dialog(self):
+        url, ok = ModernInputDialog.getText(self, "💉 SQLMap", "Target URL:")
+        if ok and url:
+            self.run_command(f"sqlmap -u '{url}' --batch --banner", f"SQLMap: {url}")
+
+    def nikto_dialog(self):
+        url, ok = ModernInputDialog.getText(self, "🔍 Nikto", "Target URL or IP:")
+        if ok and url:
+            self.run_command(f"nikto -h '{url}'", f"Nikto: {url}")
+
+    def wpscan_dialog(self):
+        url, ok = ModernInputDialog.getText(self, "📝 WPScan", "WordPress URL:")
+        if ok and url:
+            self.run_command(f"wpscan --url {url}", f"WPScan: {url}")
+
+    def dirb_dialog(self):
+        url, ok = ModernInputDialog.getText(self, "🗂️ Directory Scan", "Target URL:")
+        if ok and url:
+            self.run_command(f"dirb {url}", f"Dirb: {url}")
+
+    def john_dialog(self):
+        file, _ = QFileDialog.getOpenFileName(self, "Select Hash File")
+        if file:
+            self.run_command(f"john {file}", f"John the Ripper: {file}")
+
+    def hashcat_dialog(self):
+        file, _ = QFileDialog.getOpenFileName(self, "Select Hash File")
+        if file:
+            mode, ok = ModernInputDialog.getText(self, "⚡ Hashcat", "Hash mode (e.g. 0=MD5, 1000=NTLM, etc.):")
+            wordlist, _ = QFileDialog.getOpenFileName(self, "Select Wordlist")
+            if ok and mode and wordlist:
+                self.run_command(f"hashcat -m {mode} {file} {wordlist}", f"Hashcat: {file}")
+
+    def hydra_dialog(self):
+        service, ok = ModernInputDialog.getText(self, "🌊 Hydra", "Service (e.g. ssh, ftp):")
+        if ok and service:
+            target, ok2 = ModernInputDialog.getText(self, "🌊 Hydra", "Target IP/host:")
+            if ok2 and target:
+                userlist, _ = QFileDialog.getOpenFileName(self, "Userlist file")
+                passlist, _ = QFileDialog.getOpenFileName(self, "Passlist file")
+                if userlist and passlist:
+                    self.run_command(f"hydra -L {userlist} -P {passlist} {target} {service}", f"Hydra: {service}@{target}")
+
+    def volatility_dialog(self):
+        memfile, _ = QFileDialog.getOpenFileName(self, "Select Memory Image")
+        if memfile:
+            self.run_command(f"volatility -f {memfile} windows.info", f"Volatility: {memfile}")
+
+    def binwalk_dialog(self):
+        file, _ = QFileDialog.getOpenFileName(self, "Select File")
+        if file:
+            self.run_command(f"binwalk {file}", f"Binwalk: {file}")
+
+    def foremost_dialog(self):
+        file, _ = QFileDialog.getOpenFileName(self, "Select Image File")
+        if file:
+            self.run_command(f"foremost -i {file}", f"Foremost: {file}")
+
+    def r2_dialog(self):
+        binary, _ = QFileDialog.getOpenFileName(self, "Select Binary/File")
+        if binary:
+            self.run_command(f"r2 -A {binary}", f"Radare2: {binary}")
+
+    def strings_dialog(self):
+        file, _ = QFileDialog.getOpenFileName(self, "Select Binary File")
+        if file:
+            self.run_command(f"strings {file}", f"Strings: {file}")
+
+    def ssh_connect(self):
+        host, ok = ModernInputDialog.getText(self, "🔗 SSH", "user@host:")
+        if ok and host:
+            subprocess.Popen(f"gnome-terminal -- ssh {host}", shell=True)
+
+    def clipboard_dialog(self):
+        dlg = QDialog(self)
+        dlg.setWindowTitle("📋 Clipboard Tools")
+        dlg.setMinimumSize(600, 400)
+        dlg.setStyleSheet("""
+            QDialog {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #1e1e2e, stop:1 #252537);
+                border: 1px solid #3d4152;
+                border-radius: 15px;
+            }
+            QTextEdit {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #2d3142, stop:1 #252537);
+                border: 2px solid rgba(79, 91, 102, 0.5);
+                border-radius: 10px;
+                color: #ffffff;
+                font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+                padding: 15px;
+            }
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #00d4aa, stop:1 #00b894);
+                border: none;
+                border-radius: 8px;
+                color: #1e1e2e;
+                font-weight: bold;
+                padding: 12px 25px;
+                margin: 5px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                    stop:0 #00f5cc, stop:1 #00d4aa);
+            }
+        """)
+        
+        lay = QVBoxLayout(dlg)
+        lay.setContentsMargins(30, 30, 30, 30)
+        lay.setSpacing(20)
+        
+        title = QLabel("📋 Clipboard Manager")
+        title.setFont(QFont("SF Pro Display", 16, QFont.Weight.Bold))
+        title.setStyleSheet("color: #00d4aa; margin-bottom: 10px;")
+        lay.addWidget(title)
+        
+        txt = QTextEdit()
+        txt.setPlaceholderText("Paste or enter text (base64/hex/hashes)...")
+        lay.addWidget(QLabel("Enter text to copy to clipboard:"))
+        lay.addWidget(txt)
+        
+        btn_layout = QHBoxLayout()
+        btn_copy = QPushButton("📋 Copy to Clipboard")
+        btn_copy.clicked.connect(lambda: QApplication.clipboard().setText(txt.toPlainText()))
+        btn_close = QPushButton("❌ Close")
+        btn_close.clicked.connect(dlg.accept)
+        
+        btn_layout.addWidget(btn_copy)
+        btn_layout.addWidget(btn_close)
+        lay.addLayout(btn_layout)
+        dlg.exec()
+
+    def custom_command_dialog(self):
+        cmd, ok = ModernInputDialog.getText(self, "⚡ Custom Command", "Enter shell command to run:")
+        if ok and cmd:
+            self.run_command(cmd, f"Custom Command: {cmd}")
+
+def main():
+    app = QApplication(sys.argv)
+    
+    # Set application style and font
+    app.setStyle('Fusion')
+    app.setApplicationName("ALPHA-X Ultimate")
+    app.setApplicationVersion("2.0")
+    
+    # Set default font
+    font = QFont("SF Pro Display", 10)
+    app.setFont(font)
+    
+    # Apply enhanced dark palette
+    palette = QPalette()
+    palette.setColor(QPalette.Window, QColor(30, 30, 46))
+    palette.setColor(QPalette.WindowText, QColor(255, 255, 255))
+    palette.setColor(QPalette.Base, QColor(45, 49, 66))
+    palette.setColor(QPalette.AlternateBase, QColor(79, 91, 102))
+    palette.setColor(QPalette.ToolTipBase, QColor(255, 255, 255))
+    palette.setColor(QPalette.ToolTipText, QColor(255, 255, 255))
+    palette.setColor(QPalette.Text, QColor(255, 255, 255))
+    palette.setColor(QPalette.Button, QColor(45, 49, 66))
+    palette.setColor(QPalette.ButtonText, QColor(255, 255, 255))
+    palette.setColor(QPalette.BrightText, QColor(255, 0, 0))
+    palette.setColor(QPalette.Link, QColor(0, 212, 170))
+    palette.setColor(QPalette.Highlight, QColor(0, 212, 170))
+    palette.setColor(QPalette.HighlightedText, QColor(0, 0, 0))
+    app.setPalette(palette)
+    
+    win = AlphaXUltimate()
+    win.show()
+    sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
